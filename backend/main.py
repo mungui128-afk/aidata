@@ -5,14 +5,20 @@ from typing import Any
 
 from fastapi import APIRouter, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 
 from services.analytics import build_dashboard_from_erp, build_raw_data, dashboard_to_text
 from services.erp_parser import CSV_TYPE_LABELS, CSV_TYPE_ORDER, CsvType, parse_typed_csv
-from services.gemini_service import generate_analysis_report
-from services.report_generator import generate_docx, generate_pdf
 
 app = FastAPI(title="ERP 경영 대시보드 API", version="2.0.0")
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(_request, exc: Exception):
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return JSONResponse(status_code=500, content={"detail": f"서버 오류: {exc}"})
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -135,9 +141,17 @@ async def load_data(
         result = _process_csv_files(contents)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"데이터 처리 실패: {e}") from e
 
     sid = session_id or str(uuid.uuid4())
-    sessions[sid] = {**result, "loaded": True}
+    sessions[sid] = {
+        "loaded": True,
+        "upload_status": result["upload_status"],
+        "dashboard": result["dashboard"],
+        "raw_data": result["raw_data"],
+        "report": None,
+    }
 
     return {
         "session_id": sid,
@@ -167,9 +181,17 @@ def load_sample_data(session_id: str | None = None):
         result = _process_csv_files(contents)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"샘플 데이터 처리 실패: {e}") from e
 
     sid = session_id or str(uuid.uuid4())
-    sessions[sid] = {**result, "loaded": True}
+    sessions[sid] = {
+        "loaded": True,
+        "upload_status": result["upload_status"],
+        "dashboard": result["dashboard"],
+        "raw_data": result["raw_data"],
+        "report": None,
+    }
 
     return {
         "session_id": sid,
@@ -204,6 +226,8 @@ def generate_report(session_id: str):
     dashboard = session["dashboard"]
     data_summary = dashboard_to_text(dashboard)
 
+    from services.gemini_service import generate_analysis_report
+
     try:
         report = generate_analysis_report(dashboard, data_summary)
     except Exception as e:
@@ -223,6 +247,8 @@ def download_report(session_id: str, format: str = "pdf"):
 
     dashboard = session["dashboard"]
     report = session["report"]
+
+    from services.report_generator import generate_docx, generate_pdf
 
     if format == "pdf":
         content = generate_pdf(dashboard, report)

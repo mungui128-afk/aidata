@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Sparkles, FileDown, FileText, Loader2 } from 'lucide-react'
+import { parseJsonResponse } from '../lib/api'
 import type { AIReport } from '../types'
 
 interface Props {
@@ -18,8 +19,8 @@ export default function ReportPage({ sessionId, report, onReportGenerated }: Pro
     setError(null)
     try {
       const res = await fetch(`/api/report/generate/${sessionId}`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || '보고서 생성 실패')
+      const { data, error: apiError } = await parseJsonResponse<{ report: AIReport }>(res)
+      if (apiError || !data) throw new Error(apiError || '보고서 생성 실패')
       onReportGenerated(data.report)
     } catch (e) {
       setError(e instanceof Error ? e.message : '보고서 생성 중 오류')
@@ -33,8 +34,8 @@ export default function ReportPage({ sessionId, report, onReportGenerated }: Pro
     try {
       const res = await fetch(`/api/report/download/${sessionId}?format=${format}`)
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.detail || '다운로드 실패')
+        const { error: apiError } = await parseJsonResponse(res)
+        throw new Error(apiError || '다운로드 실패')
       }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)

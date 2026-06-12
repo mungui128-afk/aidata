@@ -4,23 +4,17 @@ import tempfile
 from datetime import datetime
 from typing import Any
 
-import koreanize_matplotlib  # noqa: F401
-import matplotlib
-import matplotlib.pyplot as plt
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches, Pt, RGBColor
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
-matplotlib.use("Agg")
-
 FONT_REGISTERED = False
+
+
+def _get_plt():
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import koreanize_matplotlib  # noqa: F401
+    import matplotlib.pyplot as plt
+
+    return plt
 
 
 def _register_korean_font():
@@ -28,10 +22,14 @@ def _register_korean_font():
     if FONT_REGISTERED:
         return "KoreanFont"
 
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
     font_paths = [
         "C:/Windows/Fonts/malgun.ttf",
         "C:/Windows/Fonts/malgunbd.ttf",
         "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ]
     for path in font_paths:
         if os.path.exists(path):
@@ -52,6 +50,7 @@ def _format_currency(value: float) -> str:
 
 
 def create_chart_images(dashboard: dict[str, Any]) -> dict[str, bytes]:
+    plt = _get_plt()
     charts: dict[str, bytes] = {}
 
     if dashboard.get("monthly_trend"):
@@ -98,6 +97,10 @@ def create_chart_images(dashboard: dict[str, Any]) -> dict[str, bytes]:
 
 
 def generate_docx(dashboard: dict[str, Any], report: dict[str, Any]) -> bytes:
+    from docx import Document
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Inches, Pt
+
     doc = Document()
     style = doc.styles["Normal"]
     style.font.name = "Malgun Gothic"
@@ -183,6 +186,12 @@ def generate_docx(dashboard: dict[str, Any], report: dict[str, Any]) -> bytes:
 
 
 def generate_pdf(dashboard: dict[str, Any], report: dict[str, Any]) -> bytes:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
     font_name = _register_korean_font()
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=20 * mm, leftMargin=20 * mm, topMargin=20 * mm, bottomMargin=20 * mm)

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CSV_TYPES, type CsvType, type RawData } from '../types'
+import { parseJsonResponse } from '../lib/api'
 
 interface Props {
   sessionId: string | null
@@ -22,11 +23,9 @@ export default function RawDataPage({ sessionId, rawData, loading, onRawDataLoad
 
     fetch(`/api/raw-data/${sessionId}`)
       .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.detail || '원본 데이터를 불러올 수 없습니다')
-        }
-        return res.json() as Promise<RawData>
+        const { data, error: apiError } = await parseJsonResponse<RawData>(res)
+        if (apiError || !data) throw new Error(apiError || '원본 데이터를 불러올 수 없습니다')
+        return data
       })
       .then((data) => {
         if (!cancelled) onRawDataLoaded(data)

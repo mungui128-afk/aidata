@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage'
 import ReportPage from './pages/ReportPage'
 import RawDataPage from './pages/RawDataPage'
 import type { ValidationResult } from './validation/erpSchemas'
+import { parseJsonResponse } from './lib/api'
 import type {
   AIReport, CsvType, DashboardData, LoadResponse, MenuId, RawData, UploadStatusItem,
 } from './types'
@@ -46,11 +47,12 @@ export default function App() {
     setRawLoading(true)
     try {
       const res = await fetch(`/api/raw-data/${data.session_id}`)
-      if (res.ok) {
-        setRawData(await res.json())
-      } else {
+      const { data: raw, error: apiError } = await parseJsonResponse<RawData>(res)
+      if (apiError || !raw) {
         setRawData(null)
-        setError('원본 데이터를 불러오지 못했습니다. 다시 시도해주세요.')
+        setError(apiError || '원본 데이터를 불러오지 못했습니다. 다시 시도해주세요.')
+      } else {
+        setRawData(raw)
       }
     } catch {
       setRawData(null)
@@ -78,8 +80,8 @@ export default function App() {
 
     try {
       const res = await fetch('/api/load', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || '데이터 불러오기 실패')
+      const { data, error: apiError } = await parseJsonResponse<LoadResponse>(res)
+      if (apiError || !data) throw new Error(apiError || '데이터 불러오기 실패')
       await handleLoadResult(data)
       setMenu('dashboard')
     } catch (e) {
@@ -94,8 +96,8 @@ export default function App() {
     setError(null)
     try {
       const res = await fetch('/api/load/sample', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || '샘플 데이터 불러오기 실패')
+      const { data, error: apiError } = await parseJsonResponse<LoadResponse>(res)
+      if (apiError || !data) throw new Error(apiError || '샘플 데이터 불러오기 실패')
       await handleLoadResult(data)
       setMenu('dashboard')
     } catch (e) {
