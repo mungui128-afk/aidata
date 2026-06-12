@@ -76,4 +76,5 @@ export interface LoadResponse {
   session_id: string
   upload_status: UploadStatusItem[]
   dashboard: DashboardData
+  raw_data?: RawData
 }

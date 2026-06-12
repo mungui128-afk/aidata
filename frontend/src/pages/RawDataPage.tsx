@@ -1,16 +1,56 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CSV_TYPES, type CsvType, type RawData } from '../types'
 
 interface Props {
+  sessionId: string | null
   rawData: RawData | null
   loading: boolean
+  onRawDataLoaded: (data: RawData) => void
 }
 
-export default function RawDataPage({ rawData, loading }: Props) {
+export default function RawDataPage({ sessionId, rawData, loading, onRawDataLoaded }: Props) {
   const [activeTab, setActiveTab] = useState<CsvType>('products')
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [refetching, setRefetching] = useState(false)
 
-  if (loading) {
+  useEffect(() => {
+    if (rawData || !sessionId || loading) return
+
+    let cancelled = false
+    setRefetching(true)
+    setFetchError(null)
+
+    fetch(`/api/raw-data/${sessionId}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.detail || '원본 데이터를 불러올 수 없습니다')
+        }
+        return res.json() as Promise<RawData>
+      })
+      .then((data) => {
+        if (!cancelled) onRawDataLoaded(data)
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setFetchError(e.message)
+      })
+      .finally(() => {
+        if (!cancelled) setRefetching(false)
+      })
+
+    return () => { cancelled = true }
+  }, [sessionId, rawData, loading, onRawDataLoaded])
+
+  if (loading || refetching) {
     return <p className="text-caption">원본 데이터를 불러오는 중...</p>
+  }
+
+  if (fetchError) {
+    return (
+      <div className="alert alert--error">
+        {fetchError}
+      </div>
+    )
   }
 
   if (!rawData) {

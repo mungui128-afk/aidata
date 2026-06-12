@@ -38,10 +38,23 @@ export default function App() {
     setDashboard(data.dashboard)
     setReport(null)
 
+    if (data.raw_data) {
+      setRawData(data.raw_data)
+      return
+    }
+
     setRawLoading(true)
     try {
       const res = await fetch(`/api/raw-data/${data.session_id}`)
-      if (res.ok) setRawData(await res.json())
+      if (res.ok) {
+        setRawData(await res.json())
+      } else {
+        setRawData(null)
+        setError('원본 데이터를 불러오지 못했습니다. 다시 시도해주세요.')
+      }
+    } catch {
+      setRawData(null)
+      setError('원본 데이터를 불러오지 못했습니다.')
     } finally {
       setRawLoading(false)
     }
@@ -128,7 +141,14 @@ export default function App() {
             {menu === 'report' && sessionId && (
               <ReportPage sessionId={sessionId} report={report} onReportGenerated={setReport} />
             )}
-            {menu === 'raw' && <RawDataPage rawData={rawData} loading={rawLoading} />}
+            {menu === 'raw' && (
+              <RawDataPage
+                sessionId={sessionId}
+                rawData={rawData}
+                loading={rawLoading}
+                onRawDataLoaded={setRawData}
+              />
+            )}
           </main>
           <footer className="app-footer">
             ERP데이터 분석 대시보드 &amp; 자동 보고서 · Powered by Gemini 3.1 Flash Lite

@@ -8,31 +8,33 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : NaN
 }
 
+const strField = (v: unknown) => String(v ?? '').trim()
+
 export const productRowSchema = z.object({
-  product_id: z.string().min(1, '상품ID가 비어 있습니다'),
-  product_name: z.string().min(1, '상품명이 비어 있습니다'),
-  category: z.string().min(1, '카테고리가 비어 있습니다'),
+  product_id: z.preprocess(strField, z.string().min(1, '상품ID가 비어 있습니다')),
+  product_name: z.preprocess(strField, z.string().min(1, '상품명이 비어 있습니다')),
+  category: z.preprocess(strField, z.string().min(1, '카테고리가 비어 있습니다')),
   unit_price: z.preprocess(num, z.number().nonnegative('단가는 0 이상이어야 합니다')),
   cost: z.preprocess(num, z.number().nonnegative('원가는 0 이상이어야 합니다')),
 })
 
 export const customerRowSchema = z.object({
-  customer_id: z.string().min(1, '고객ID가 비어 있습니다'),
-  customer_name: z.string().min(1, '고객명이 비어 있습니다'),
-  region: z.string().min(1, '지역이 비어 있습니다'),
-  industry: z.string().min(1, '업종이 비어 있습니다'),
+  customer_id: z.preprocess(strField, z.string().min(1, '고객ID가 비어 있습니다')),
+  customer_name: z.preprocess(strField, z.string().min(1, '고객명이 비어 있습니다')),
+  region: z.preprocess(strField, z.string().min(1, '지역이 비어 있습니다')),
+  industry: z.preprocess(strField, z.string().min(1, '업종이 비어 있습니다')),
 })
 
 export const orderRowSchema = z.object({
-  order_id: z.string().min(1, '주문ID가 비어 있습니다'),
-  customer_id: z.string().min(1, '고객ID가 비어 있습니다'),
-  order_date: z.string().min(1, '주문일이 비어 있습니다'),
-  status: z.string().min(1, '상태가 비어 있습니다'),
+  order_id: z.preprocess(strField, z.string().min(1, '주문ID가 비어 있습니다')),
+  customer_id: z.preprocess(strField, z.string().min(1, '고객ID가 비어 있습니다')),
+  order_date: z.preprocess(strField, z.string().min(1, '주문일이 비어 있습니다')),
+  status: z.preprocess(strField, z.string().min(1, '상태가 비어 있습니다')),
 })
 
 export const orderDetailRowSchema = z.object({
-  order_id: z.string().min(1, '주문ID가 비어 있습니다'),
-  product_id: z.string().min(1, '상품ID가 비어 있습니다'),
+  order_id: z.preprocess(strField, z.string().min(1, '주문ID가 비어 있습니다')),
+  product_id: z.preprocess(strField, z.string().min(1, '상품ID가 비어 있습니다')),
   quantity: z.preprocess(num, z.number().positive('수량은 1 이상이어야 합니다')),
   unit_price: z.preprocess(num, z.number().nonnegative('판매단가는 0 이상이어야 합니다')),
 })
@@ -158,21 +160,21 @@ function checkReferentialIntegrity(tables: Partial<Record<CsvType, ParsedTable>>
 
   if (!products || !customers || !orders || !details) return errors
 
-  const productIds = new Set(products.map((r) => r.product_id))
-  const customerIds = new Set(customers.map((r) => r.customer_id))
-  const orderIds = new Set(orders.map((r) => r.order_id))
+  const productIds = new Set(products.map((r) => String(r.product_id)))
+  const customerIds = new Set(customers.map((r) => String(r.customer_id)))
+  const orderIds = new Set(orders.map((r) => String(r.order_id)))
 
   orders.forEach((row, idx) => {
-    if (!customerIds.has(row.customer_id)) {
+    if (!customerIds.has(String(row.customer_id))) {
       errors.push(`[주문] ${idx + 2}행: 고객ID '${row.customer_id}'가 고객 테이블에 없습니다`)
     }
   })
 
   details.forEach((row, idx) => {
-    if (!orderIds.has(row.order_id)) {
+    if (!orderIds.has(String(row.order_id))) {
       errors.push(`[주문상세] ${idx + 2}행: 주문ID '${row.order_id}'가 주문 테이블에 없습니다`)
     }
-    if (!productIds.has(row.product_id)) {
+    if (!productIds.has(String(row.product_id))) {
       errors.push(`[주문상세] ${idx + 2}행: 상품ID '${row.product_id}'가 상품 테이블에 없습니다`)
     }
   })

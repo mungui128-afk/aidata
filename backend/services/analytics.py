@@ -8,14 +8,22 @@ def _safe_sum(series: pd.Series) -> float:
     return float(series.sum()) if series is not None and not series.empty else 0.0
 
 
-def _df_to_records(df: pd.DataFrame, limit: int = 100) -> list[dict]:
+def _df_to_records(df: pd.DataFrame, limit: int = 500) -> list[dict]:
     rows = df.head(limit).replace({np.nan: None}).to_dict(orient="records")
     for row in rows:
-        for key, val in row.items():
+        for key, val in list(row.items()):
+            if val is None:
+                continue
             if hasattr(val, "isoformat"):
                 row[key] = str(val)[:10]
-            elif isinstance(val, (np.integer, np.floating)):
-                row[key] = float(val) if isinstance(val, np.floating) else int(val)
+            elif isinstance(val, (np.integer,)):
+                row[key] = int(val)
+            elif isinstance(val, (np.floating,)):
+                row[key] = None if np.isnan(val) else float(val)
+            elif isinstance(val, (int, float, str, bool)):
+                row[key] = val
+            else:
+                row[key] = str(val)
     return rows
 
 

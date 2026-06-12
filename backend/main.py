@@ -143,6 +143,7 @@ async def load_data(
         "session_id": sid,
         "upload_status": result["upload_status"],
         "dashboard": result["dashboard"],
+        "raw_data": result["raw_data"],
     }
 
 
@@ -174,6 +175,7 @@ def load_sample_data(session_id: str | None = None):
         "session_id": sid,
         "upload_status": result["upload_status"],
         "dashboard": result["dashboard"],
+        "raw_data": result["raw_data"],
     }
 
 

@@ -3,6 +3,7 @@ import {
   Upload, CheckCircle2, XCircle, Loader2, FileSpreadsheet, AlertCircle,
 } from 'lucide-react'
 import ServiceFlow from '../components/ServiceFlow'
+import CsvPreview from '../components/CsvPreview'
 import { parseCsvFile } from '../lib/csvParser'
 import {
   validateTables, CSV_SLOT_META,
@@ -34,11 +35,13 @@ export default function DataInputPage({
   const [validating, setValidating] = useState(false)
   const [validation, setValidation] = useState<ValidationResult | null>(null)
   const [parseErrors, setParseErrors] = useState<string[]>([])
+  const [previewTables, setPreviewTables] = useState<Partial<Record<CsvType, import('../validation/erpSchemas').ParsedTable>>>({})
 
   const runValidation = useCallback(async (fileMap: Partial<Record<CsvType, File>>) => {
     if (Object.keys(fileMap).length === 0) {
       setValidation(null)
       setParseErrors([])
+      setPreviewTables({})
       onFilesChange({}, null)
       return
     }
@@ -62,6 +65,7 @@ export default function DataInputPage({
     }
 
     setParseErrors(pErrors)
+    setPreviewTables(tables)
     const result = validateTables(tables, fileNames)
     setValidation(result)
     onFilesChange(fileMap, result)
@@ -91,6 +95,7 @@ export default function DataInputPage({
   const clearAll = () => {
     setValidation(null)
     setParseErrors([])
+    setPreviewTables({})
     onFilesChange({}, null)
     if (inputRef.current) inputRef.current.value = ''
   }
@@ -182,6 +187,10 @@ export default function DataInputPage({
           <CheckCircle2 size={18} />
           스키마 검증 및 참조 무결성 점검을 통과했습니다. 데이터 불러오기를 클릭하세요.
         </div>
+      )}
+
+      {!dataLoaded && Object.keys(previewTables).length > 0 && (
+        <CsvPreview tables={previewTables} />
       )}
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
