@@ -37,3 +37,53 @@ http://localhost:5173 접속
 ## 샘플 데이터
 
 `sample_data/` 폴더에 4종 CSV 샘플 파일이 있습니다.
+
+## Vercel 배포
+
+이 프로젝트는 **Vercel Services**(프론트 + 백엔드 단일 프로젝트)로 배포합니다.
+
+### 1. Vercel 프로젝트 설정
+
+- GitHub 저장소 연결: `mungui128-afk/aidata`
+- **Framework Preset**: `Services` 선택 (중요)
+- Root Directory: `.` (저장소 루트)
+
+### 2. 환경 변수 (Vercel Dashboard → Settings → Environment Variables)
+
+| 변수 | 값 |
+|------|-----|
+| `GEMINI_API_KEY` | Gemini API 키 |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` |
+
+### 3. `vercel.json` 구조 (루트)
+
+```json
+{
+  "experimentalServices": {
+    "frontend": {
+      "entrypoint": "frontend",
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "entrypoint": "backend/main.py",
+      "routePrefix": "/api",
+      "framework": "fastapi"
+    }
+  }
+}
+```
+
+> ⚠️ `root`가 아니라 **`entrypoint`** 를 사용해야 합니다. 백엔드는 디렉터리가 아니라 **`backend/main.py` 파일**을 지정합니다.
+
+### 4. 로컬에서 Vercel Services 테스트
+
+```bash
+npm i -g vercel
+vercel dev -L
+```
+
+### 5. 주의사항
+
+- Serverless 환경에서는 **세션 데이터가 함수 재시작 시 초기화**될 수 있습니다.
+- AI 보고서 생성은 시간이 걸릴 수 있어 `maxDuration: 60`을 설정했습니다.

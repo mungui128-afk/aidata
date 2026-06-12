@@ -1,8 +1,9 @@
+import os
 import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
@@ -20,6 +21,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Vercel Services: routePrefix="/api" 이므로 앱 내부 경로는 /api 없이 정의
+# 로컬 uvicorn: /api prefix 로 동일 URL 유지
+IS_VERCEL = os.getenv("VERCEL") == "1"
+API_PREFIX = "" if IS_VERCEL else "/api"
+
+router = APIRouter()
 
 SAMPLE_DIR = Path(__file__).resolve().parent.parent / "sample_data"
 sessions: dict[str, dict[str, Any]] = {}
@@ -74,12 +82,12 @@ def _process_csv_files(files: dict[CsvType, tuple[bytes, str]]) -> dict[str, Any
     }
 
 
-@app.get("/api/health")
+@router.get("/health")
 def health():
     return {"status": "ok"}
 
 
-@app.post("/api/session")
+@router.post("/session")
 def create_session():
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
@@ -89,7 +97,7 @@ def create_session():
     return {"session_id": session_id, "upload_status": _empty_upload_status()}
 
 
-@app.get("/api/session/{session_id}/status")
+@router.get("/session/{session_id}/status")
 def get_session_status(session_id: str):
     session = sessions.get(session_id)
     if not session:
@@ -101,7 +109,7 @@ def get_session_status(session_id: str):
     }
 
 
-@app.post("/api/load")
+@router.post("/load")
 async def load_data(
     products: UploadFile = File(...),
     customers: UploadFile = File(...),
@@ -138,7 +146,7 @@ async def load_data(
     }
 
 
-@app.post("/api/load/sample")
+@router.post("/load/sample")
 def load_sample_data(session_id: str | None = None):
     sample_files = {
         "products": "products.csv",
@@ -169,7 +177,7 @@ def load_sample_data(session_id: str | None = None):
     }
 
 
-@app.get("/api/dashboard/{session_id}")
+@router.get("/dashboard/{session_id}")
 def get_dashboard(session_id: str):
     session = sessions.get(session_id)
     if not session or not session.get("loaded"):
@@ -177,7 +185,7 @@ def get_dashboard(session_id: str):
     return session["dashboard"]
 
 
-@app.get("/api/raw-data/{session_id}")
+@router.get("/raw-data/{session_id}")
 def get_raw_data(session_id: str):
     session = sessions.get(session_id)
     if not session or not session.get("loaded"):
@@ -185,7 +193,7 @@ def get_raw_data(session_id: str):
     return session["raw_data"]
 
 
-@app.post("/api/report/generate/{session_id}")
+@router.post("/report/generate/{session_id}")
 def generate_report(session_id: str):
     session = sessions.get(session_id)
     if not session or not session.get("loaded"):
@@ -203,7 +211,7 @@ def generate_report(session_id: str):
     return {"session_id": session_id, "report": report}
 
 
-@app.get("/api/report/download/{session_id}")
+@router.get("/report/download/{session_id}")
 def download_report(session_id: str, format: str = "pdf"):
     session = sessions.get(session_id)
     if not session or not session.get("loaded"):
@@ -229,3 +237,6 @@ def download_report(session_id: str, format: str = "pdf"):
             headers={"Content-Disposition": 'attachment; filename="erp_report.docx"'},
         )
     raise HTTPException(status_code=400, detail="format은 pdf 또는 docx만 지원합니다.")
+
+
+app.include_router(router, prefix=API_PREFIX)
