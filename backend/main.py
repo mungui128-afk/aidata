@@ -35,7 +35,21 @@ API_PREFIX = "" if IS_VERCEL else "/api"
 
 router = APIRouter()
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent / "sample_data"
+def _resolve_sample_dir() -> Path:
+    here = Path(__file__).resolve().parent
+    candidates = [
+        here.parent / "sample_data",
+        here / "sample_data",
+        Path.cwd() / "sample_data",
+        Path("/var/task/sample_data"),
+    ]
+    for path in candidates:
+        if (path / "products.csv").exists():
+            return path
+    return candidates[0]
+
+
+SAMPLE_DIR = _resolve_sample_dir()
 sessions: dict[str, dict[str, Any]] = {}
 
 

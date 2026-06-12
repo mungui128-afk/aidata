@@ -12,7 +12,7 @@
       "framework": "fastapi",
       "memory": 1024,
       "maxDuration": 60,
-      "includeFiles": ["sample_data/**"]
+      "includeFiles": ["sample_data/**", "backend/sample_data/**"]
     }
   }
 }
