@@ -17,10 +17,17 @@ export interface UploadStatusItem {
   row_count: number
 }
 
+export interface AnalysisPeriod {
+  start: string | null
+  end: string | null
+  label: string
+}
+
 export interface DashboardData {
   meta: {
     upload_status: UploadStatusItem[]
     row_counts: Record<CsvType, number>
+    analysis_period?: AnalysisPeriod
   }
   kpis: {
     total_revenue: number

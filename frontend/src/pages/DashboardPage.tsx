@@ -2,7 +2,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
-import { TrendingUp, DollarSign, Package, Percent, Users, ShoppingCart } from 'lucide-react'
+import { TrendingUp, DollarSign, Package, Percent, Users, ShoppingCart, Calendar } from 'lucide-react'
 import type { DashboardData } from '../types'
 
 const COLORS = ['#111111', '#007d48', '#1151ff', '#0a7281', '#707072', '#39393b', '#4b4b4d', '#9e9ea0']
@@ -16,8 +16,21 @@ function formatWon(n: number) {
   return n.toLocaleString()
 }
 
+function getAnalysisPeriodLabel(dashboard: DashboardData): string {
+  const period = dashboard.meta.analysis_period
+  if (period?.label) return period.label
+  if (dashboard.monthly_trend.length > 0) {
+    const months = dashboard.monthly_trend.map((m) => m.month).sort()
+    const first = months[0].replace('-', '년 ') + '월'
+    const last = months[months.length - 1].replace('-', '년 ') + '월'
+    return first === last ? first : `${first} ~ ${last}`
+  }
+  return '분석 기간 없음'
+}
+
 export default function DashboardPage({ dashboard }: { dashboard: DashboardData }) {
   const { kpis, monthly_trend, category_breakdown, product_top, region_breakdown, customer_top, summary_table } = dashboard
+  const analysisPeriod = getAnalysisPeriodLabel(dashboard)
 
   const kpiCards = [
     { label: '총 매출', value: `${formatWon(kpis.total_revenue)}원`, icon: DollarSign },
@@ -30,10 +43,19 @@ export default function DashboardPage({ dashboard }: { dashboard: DashboardData 
 
   return (
     <section>
-      <p className="text-caption" style={{ marginBottom: 24 }}>
-        상품 {dashboard.meta.row_counts.products}건 · 고객 {dashboard.meta.row_counts.customers}건 ·
-        주문 {dashboard.meta.row_counts.orders}건 · 주문상세 {dashboard.meta.row_counts.order_details}건
-      </p>
+      <div className="dashboard-meta">
+        <div className="analysis-period">
+          <Calendar size={18} strokeWidth={1.5} />
+          <div>
+            <span className="analysis-period__label">분석 기간</span>
+            <span className="analysis-period__value">{analysisPeriod}</span>
+          </div>
+        </div>
+        <p className="text-caption">
+          상품 {dashboard.meta.row_counts.products}건 · 고객 {dashboard.meta.row_counts.customers}건 ·
+          주문 {dashboard.meta.row_counts.orders}건 · 주문상세 {dashboard.meta.row_counts.order_details}건
+        </p>
+      </div>
 
       <div className="kpi-grid">
         {kpiCards.map((k) => (

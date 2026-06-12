@@ -16,14 +16,14 @@ const MENUS: { id: MenuId; label: string; icon: typeof Database; requiresData?: 
   { id: 'raw', label: '원본데이터', icon: Table2, requiresData: true },
 ]
 
-export default function Sidebar({ active, onChange, dataLoaded }: Props) {
+export default function TopNav({ active, onChange, dataLoaded }: Props) {
   return (
-    <aside className="sidebar">
-      <div className="sidebar-brand">
-        <div className="sidebar-brand-title">ERP Analytics</div>
-        <div className="sidebar-brand-sub">데이터 분석 &amp; 자동 보고서</div>
+    <header className="app-header">
+      <div className="app-header__brand">
+        <span className="app-header__title">ERP Analytics</span>
+        <span className="app-header__sub">데이터 분석 &amp; 자동 보고서</span>
       </div>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <nav className="top-nav" aria-label="주 메뉴">
         {MENUS.map((menu) => {
           const disabled = menu.requiresData && !dataLoaded
           const Icon = menu.icon
@@ -31,16 +31,17 @@ export default function Sidebar({ active, onChange, dataLoaded }: Props) {
           return (
             <button
               key={menu.id}
-              className={`nav-item${isActive ? ' nav-item--active' : ''}`}
+              type="button"
+              className={`top-nav__item${isActive ? ' top-nav__item--active' : ''}`}
               onClick={() => !disabled && onChange(menu.id)}
               disabled={disabled}
             >
-              <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+              <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
               <span>{menu.label}</span>
             </button>
           )
         })}
       </nav>
-    </aside>
+    </header>
   )
 }

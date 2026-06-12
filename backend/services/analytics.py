@@ -8,6 +8,30 @@ def _safe_sum(series: pd.Series) -> float:
     return float(series.sum()) if series is not None and not series.empty else 0.0
 
 
+def _compute_analysis_period(orders: pd.DataFrame) -> dict[str, str | None]:
+    if "order_date" not in orders.columns:
+        return {"start": None, "end": None, "label": "분석 기간 없음"}
+
+    dates = pd.to_datetime(orders["order_date"], errors="coerce").dropna()
+    if dates.empty:
+        return {"start": None, "end": None, "label": "분석 기간 없음"}
+
+    start = dates.min()
+    end = dates.max()
+    start_str = start.strftime("%Y-%m-%d")
+    end_str = end.strftime("%Y-%m-%d")
+
+    if start.date() == end.date():
+        label = f"{start.year}년 {start.month}월 {start.day}일"
+    else:
+        label = (
+            f"{start.year}년 {start.month:02d}월 {start.day:02d}일"
+            f" ~ {end.year}년 {end.month:02d}월 {end.day:02d}일"
+        )
+
+    return {"start": start_str, "end": end_str, "label": label}
+
+
 def _df_to_records(df: pd.DataFrame, limit: int = 500) -> list[dict]:
     rows = df.head(limit).replace({np.nan: None}).to_dict(orient="records")
     for row in rows:
@@ -126,6 +150,7 @@ def build_dashboard_from_erp(
                 "orders": len(orders),
                 "order_details": len(order_details),
             },
+            "analysis_period": _compute_analysis_period(orders),
         },
         "kpis": kpis,
         "monthly_trend": monthly_trend,

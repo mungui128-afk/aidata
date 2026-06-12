@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import Sidebar from './components/Sidebar'
+import TopNav from './components/TopNav'
 import PageHeader from './components/PageHeader'
 import DataInputPage from './pages/DataInputPage'
 import DashboardPage from './pages/DashboardPage'
@@ -115,14 +115,10 @@ export default function App() {
   }
 
   return (
-    <div>
-      <div className="utility-bar">
-        <span>Gemini 3.1 Flash Lite · ERP Analytics Platform</span>
-      </div>
-      <div className="app-layout">
-        <Sidebar active={menu} onChange={handleMenuChange} dataLoaded={dataLoaded} />
-        <div className="app-content">
-          <main className="app-main">
+    <div className="app-shell">
+      <TopNav active={menu} onChange={handleMenuChange} dataLoaded={dataLoaded} />
+      <div className="app-content">
+        <main className="app-main">
             <PageHeader subtitle={PAGE_SUBTITLES[menu]} />
 
             {error && (
@@ -159,11 +155,10 @@ export default function App() {
                 onRawDataLoaded={setRawData}
               />
             )}
-          </main>
-          <footer className="app-footer">
-            ERP데이터 분석 대시보드 &amp; 자동 보고서 · Powered by Gemini 3.1 Flash Lite
-          </footer>
-        </div>
+        </main>
+        <footer className="app-footer">
+          ERP데이터 분석 대시보드 &amp; 자동 보고서 · Powered by Gemini 3.1 Flash Lite
+        </footer>
       </div>
     </div>
   )
