@@ -196,7 +196,7 @@ export default function DataInputPage({
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <button className="btn-primary" onClick={onLoadData} disabled={!allValid || loading}>
           {loading ? <Loader2 size={18} className="spin" /> : <Upload size={18} />}
-          데이터 불러오기
+          {loading ? '대시보드·AI 보고서 생성 중...' : '데이터 불러오기'}
         </button>
         <button className="btn-secondary" onClick={onLoadSample} disabled={loading}>
           {loading ? <Loader2 size={18} className="spin" /> : <FileSpreadsheet size={18} />}

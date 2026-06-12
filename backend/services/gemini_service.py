@@ -1,19 +1,36 @@
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from google import genai
 
-load_dotenv()
+_backend_dir = Path(__file__).resolve().parent.parent
+for _env_path in (_backend_dir / ".env", _backend_dir.parent / ".env"):
+    if _env_path.is_file():
+        load_dotenv(_env_path, override=False)
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 
 
-def _get_client() -> genai.Client:
-    api_key = os.getenv("GEMINI_API_KEY")
+def get_gemini_api_key() -> str | None:
+    key = os.getenv("GEMINI_API_KEY", "").strip()
+    return key or None
+
+
+def gemini_configured() -> bool:
+    return get_gemini_api_key() is not None
+
+
+def _get_client():
+    from google import genai
+
+    api_key = get_gemini_api_key()
     if not api_key:
-        raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
+        raise ValueError(
+            "GEMINI_API_KEY가 설정되지 않았습니다. "
+            "로컬: backend/.env · Vercel: Settings → Environment Variables에 등록하세요."
+        )
     return genai.Client(api_key=api_key)
 
 

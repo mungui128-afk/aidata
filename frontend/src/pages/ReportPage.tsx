@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sparkles, FileDown, FileText, Loader2 } from 'lucide-react'
 import { parseJsonResponse } from '../lib/api'
 import type { AIReport } from '../types'
@@ -6,28 +6,42 @@ import type { AIReport } from '../types'
 interface Props {
   sessionId: string
   report: AIReport | null
+  reportError: string | null
   onReportGenerated: (report: AIReport) => void
+  onReportError: (error: string | null) => void
 }
 
-export default function ReportPage({ sessionId, report, onReportGenerated }: Props) {
+export default function ReportPage({
+  sessionId,
+  report,
+  reportError,
+  onReportGenerated,
+  onReportError,
+}: Props) {
   const [generating, setGenerating] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const autoTried = useRef(false)
 
-  const generateReport = async () => {
+  const generateReport = useCallback(async () => {
     setGenerating(true)
-    setError(null)
+    onReportError(null)
     try {
       const res = await fetch(`/api/report/generate/${sessionId}`, { method: 'POST' })
       const { data, error: apiError } = await parseJsonResponse<{ report: AIReport }>(res)
       if (apiError || !data) throw new Error(apiError || '보고서 생성 실패')
       onReportGenerated(data.report)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '보고서 생성 중 오류')
+      onReportError(e instanceof Error ? e.message : '보고서 생성 중 오류')
     } finally {
       setGenerating(false)
     }
-  }
+  }, [sessionId, onReportGenerated, onReportError])
+
+  useEffect(() => {
+    if (report || generating || reportError || autoTried.current) return
+    autoTried.current = true
+    generateReport()
+  }, [report, generating, reportError, generateReport])
 
   const download = async (format: 'pdf' | 'docx') => {
     setDownloading(format)
@@ -45,23 +59,19 @@ export default function ReportPage({ sessionId, report, onReportGenerated }: Pro
       a.click()
       URL.revokeObjectURL(url)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '다운로드 중 오류')
+      onReportError(e instanceof Error ? e.message : '다운로드 중 오류')
     } finally {
       setDownloading(null)
     }
   }
 
+  const displayError = reportError
+
   return (
     <section>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
-        <p className="text-caption">Gemini 3.1 Flash Lite AI가 ERP 데이터를 분석합니다</p>
+        <p className="text-caption">데이터 로드 시 Gemini AI가 경영 분석 보고서를 자동 생성합니다</p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {!report && (
-            <button className="btn-primary" onClick={generateReport} disabled={generating}>
-              {generating ? <Loader2 size={18} className="spin" /> : <Sparkles size={18} />}
-              {generating ? 'AI 분석 중...' : 'AI 보고서 생성'}
-            </button>
-          )}
           {report && (
             <>
               <button className="btn-secondary" onClick={() => download('pdf')} disabled={!!downloading}>
@@ -72,28 +82,22 @@ export default function ReportPage({ sessionId, report, onReportGenerated }: Pro
                 {downloading === 'docx' ? <Loader2 size={16} className="spin" /> : <FileText size={16} />}
                 Word 다운로드
               </button>
-              <button className="btn-outline" onClick={generateReport} disabled={generating}>재생성</button>
             </>
           )}
+          <button className="btn-outline" onClick={generateReport} disabled={generating}>
+            {generating ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
+            {generating ? '재생성 중...' : '보고서 재생성'}
+          </button>
         </div>
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {displayError && <div className="alert alert--error">{displayError}</div>}
 
-      {!report && !generating && (
-        <div className="card-filled" style={{ textAlign: 'center', padding: '60px 24px' }}>
-          <Sparkles size={40} color="#707072" strokeWidth={1.5} />
-          <p className="text-body" style={{ marginTop: 16 }}>AI 보고서 생성 버튼을 클릭하면 경영 분석 보고서가 작성됩니다.</p>
-          <p className="text-caption" style={{ marginTop: 8 }}>
-            KPI, 표, 그래프, 권고사항이 포함된 PDF/Word 파일로 다운로드할 수 있습니다.
-          </p>
-        </div>
-      )}
-
-      {generating && (
+      {!report && generating && (
         <div className="card-filled" style={{ textAlign: 'center', padding: '60px 24px' }}>
           <Loader2 size={40} color="#111111" className="spin" />
           <p className="text-body" style={{ marginTop: 16 }}>Gemini AI가 ERP 데이터를 분석하고 있습니다...</p>
+          <p className="text-caption" style={{ marginTop: 8 }}>데이터 로드와 함께 보고서가 자동 생성됩니다</p>
         </div>
       )}
 

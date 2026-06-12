@@ -12,7 +12,7 @@ const STEPS = [
   {
     num: 3,
     title: 'AI 보고서 & 다운로드',
-    desc: 'Gemini로 보고서를 만들고 PDF/Word로 내려받습니다.',
+    desc: '데이터 로드와 동시에 Gemini AI 보고서가 자동 생성되며 PDF/Word로 내려받을 수 있습니다.',
   },
 ]
 

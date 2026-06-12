@@ -102,9 +102,46 @@ def _process_csv_files(files: dict[CsvType, tuple[bytes, str]]) -> dict[str, Any
     }
 
 
+def _auto_generate_report(dashboard: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+    from services.gemini_service import gemini_configured, generate_analysis_report
+
+    if not gemini_configured():
+        return None, (
+            "GEMINI_API_KEY가 설정되지 않았습니다. "
+            "Vercel Dashboard → Settings → Environment Variables에 등록 후 재배포하세요."
+        )
+
+    try:
+        report = generate_analysis_report(dashboard, dashboard_to_text(dashboard))
+        return report, None
+    except Exception as e:
+        return None, f"AI 보고서 생성 실패: {e}"
+
+
+def _build_load_response(sid: str, result: dict[str, Any]) -> dict[str, Any]:
+    report, report_error = _auto_generate_report(result["dashboard"])
+    sessions[sid] = {
+        "loaded": True,
+        "upload_status": result["upload_status"],
+        "dashboard": result["dashboard"],
+        "raw_data": result["raw_data"],
+        "report": report,
+    }
+    return {
+        "session_id": sid,
+        "upload_status": result["upload_status"],
+        "dashboard": result["dashboard"],
+        "raw_data": result["raw_data"],
+        "report": report,
+        "report_error": report_error,
+    }
+
+
 @router.get("/health")
 def health():
-    return {"status": "ok"}
+    from services.gemini_service import gemini_configured
+
+    return {"status": "ok", "gemini_configured": gemini_configured()}
 
 
 @router.post("/session")
@@ -159,20 +196,7 @@ async def load_data(
         raise HTTPException(status_code=500, detail=f"데이터 처리 실패: {e}") from e
 
     sid = session_id or str(uuid.uuid4())
-    sessions[sid] = {
-        "loaded": True,
-        "upload_status": result["upload_status"],
-        "dashboard": result["dashboard"],
-        "raw_data": result["raw_data"],
-        "report": None,
-    }
-
-    return {
-        "session_id": sid,
-        "upload_status": result["upload_status"],
-        "dashboard": result["dashboard"],
-        "raw_data": result["raw_data"],
-    }
+    return _build_load_response(sid, result)
 
 
 @router.post("/load/sample")
@@ -199,20 +223,7 @@ def load_sample_data(session_id: str | None = None):
         raise HTTPException(status_code=500, detail=f"샘플 데이터 처리 실패: {e}") from e
 
     sid = session_id or str(uuid.uuid4())
-    sessions[sid] = {
-        "loaded": True,
-        "upload_status": result["upload_status"],
-        "dashboard": result["dashboard"],
-        "raw_data": result["raw_data"],
-        "report": None,
-    }
-
-    return {
-        "session_id": sid,
-        "upload_status": result["upload_status"],
-        "dashboard": result["dashboard"],
-        "raw_data": result["raw_data"],
-    }
+    return _build_load_response(sid, result)
 
 
 @router.get("/dashboard/{session_id}")

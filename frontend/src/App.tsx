@@ -30,6 +30,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [rawLoading, setRawLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [reportError, setReportError] = useState<string | null>(null)
 
   const dataLoaded = !!sessionId && !!dashboard
 
@@ -37,7 +38,8 @@ export default function App() {
     setSessionId(data.session_id)
     setUploadStatus(data.upload_status)
     setDashboard(data.dashboard)
-    setReport(null)
+    setReport(data.report ?? null)
+    setReportError(data.report_error ?? null)
 
     if (data.raw_data) {
       setRawData(data.raw_data)
@@ -141,7 +143,13 @@ export default function App() {
 
             {menu === 'dashboard' && dashboard && <DashboardPage dashboard={dashboard} />}
             {menu === 'report' && sessionId && (
-              <ReportPage sessionId={sessionId} report={report} onReportGenerated={setReport} />
+              <ReportPage
+                sessionId={sessionId}
+                report={report}
+                reportError={reportError}
+                onReportGenerated={(r) => { setReport(r); setReportError(null) }}
+                onReportError={setReportError}
+              />
             )}
             {menu === 'raw' && (
               <RawDataPage

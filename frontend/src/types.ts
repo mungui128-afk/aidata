@@ -77,4 +77,6 @@ export interface LoadResponse {
   upload_status: UploadStatusItem[]
   dashboard: DashboardData
   raw_data?: RawData
+  report?: AIReport | null
+  report_error?: string | null
 }
